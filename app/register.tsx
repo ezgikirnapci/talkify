@@ -1,8 +1,9 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import {Alert,KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View,}
-from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import { register } from "../services/authService";
 
 export default function Register() {
   const router = useRouter();
@@ -10,18 +11,118 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
-  const handleRegister = () => {
+  const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+
+  const validatePassword = (pass: string) => {
+    if (isDev) {
+      // Relaxed rules for testing: minimum 6 chars, at least one letter and one number
+      const minLength = pass.length >= 6;
+      const hasLetter = /[A-Za-z]/.test(pass);
+      const hasNumber = /[0-9]/.test(pass);
+      return minLength && hasLetter && hasNumber;
+    }
+
+    // Production rules: stricter
+    const minLength = pass.length >= 8;
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasLower = /[a-z]/.test(pass);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>/\']/.test(pass);
+    return minLength && hasUpper && hasLower && hasSpecial;
+  };
+
+  const isEmailValid = email.length === 0 || /\S+@\S+\.\S+/.test(email);
+
+  const passwordHelp = isDev
+    ? "Şifre en az 6 karakter olmalı ve en az bir harf ile bir rakam içermelidir."
+    : "Şifre en az 8 karakter olmalı, 1 büyük harf, 1 küçük harf ve en az 1 özel karakter içermelidir.";
+
+  useEffect(() => {
+    return () => {
+      // Unmount sırasında (veya route değişimlerinde) odak hala bir inputta kalırsa, web'de blur yaparak
+      // aria-hidden uyarısını önlüyoruz.
+      if (Platform.OS === 'web') {
+        try {
+          const active = document.activeElement as HTMLElement | null;
+          if (active && typeof active.blur === 'function') active.blur();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+  }, []);
+
+  // Also blur when the screen loses focus (navigation away) to avoid aria-hidden focus issues
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (Platform.OS === 'web') {
+          try {
+            const active = document.activeElement as HTMLElement | null;
+            if (active && typeof active.blur === 'function') active.blur();
+          } catch (e) {
+            // ignore
+          }
+        }
+      };
+    }, [])
+  );
+
+  const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldur.");
       return;
     }
+
+    // Clear previous errors when user takes action
+    setRegisterError(null);
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      Alert.alert("E-posta Hatası", "Lütfen geçerli bir e-posta adresi giriniz.");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      Alert.alert(
+        "Zayıf Şifre",
+        passwordHelp
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert("Şifre Hatası", "Şifreler eşleşmiyor.");
       return;
     }
-    Alert.alert("Başarılı 🎉", "Kayıt işlemi tamamlandı!");
-    router.push("/");
+
+    try {
+      console.log("Starting registration for:", email);
+      await register(email, password, name);
+      console.log("Registration successful");
+
+      // Web ortamında yönlendirmeden önce odaklı elementi blur et (aria-hidden uyarısını önlemek için)
+      if (Platform.OS === 'web') {
+        try {
+          const active = document.activeElement as HTMLElement | null;
+          if (active && typeof active.blur === 'function') active.blur();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      Alert.alert("Başarılı 🎉", "Kayıt işlemi tamamlandı!");
+      router.push("/");
+    } catch (error: any) {
+      console.log("Register screen catch block:", error);
+      const friendly = error.message || 'Kayıt oluşturulamadı.';
+      setRegisterError(friendly);
+      if (typeof (error as any).serverMessage === 'string' && isDev) {
+        // show raw server message in dev for debugging
+        setRegisterError(`${friendly} (${(error as any).serverMessage})`);
+      }
+      Alert.alert("Hata", friendly);
+    }
   };
 
   return (
@@ -42,13 +143,20 @@ export default function Register() {
               value={name}
               onChangeText={setName}
             />
+
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEmailValid && styles.inputError]}
               placeholder="E-posta"
               placeholderTextColor="#004AAD88"
               value={email}
               onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
+            {!isEmailValid && (
+              <Text style={styles.errorText}>Lütfen geçerli bir e-posta adresi giriniz.</Text>
+            )}
+
             <TextInput
               style={styles.input}
               placeholder="Şifre"
@@ -66,7 +174,13 @@ export default function Register() {
               onChangeText={setConfirmPassword}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <Text style={styles.helperText}>{passwordHelp}</Text>
+
+            <TouchableOpacity
+              style={[styles.button, !isEmailValid && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={!isEmailValid}
+            >
               <LinearGradient
                 colors={["#66A6FF", "#89F7FE"]}
                 style={styles.buttonGradient}
@@ -74,6 +188,8 @@ export default function Register() {
                 <Text style={styles.buttonText}>Kayıt Ol</Text>
               </LinearGradient>
             </TouchableOpacity>
+
+            {registerError && <Text style={styles.errorText}>{registerError}</Text>}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Zaten hesabın var mı?</Text>
@@ -123,12 +239,32 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.1)",
     borderWidth: 1,
     borderRadius: 10,
-    marginBottom: 15,
+    marginBottom: 10,
     paddingHorizontal: 15,
     backgroundColor: "#fff",
     color: "#004AAD",
   },
+  inputError: {
+    borderColor: "#ff4d4d",
+    borderWidth: 2,
+  },
+  errorText: {
+    color: "#ff4d4d",
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
+    fontWeight: "600",
+  },
+  helperText: {
+    color: "#004AAD",
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
+  },
   button: { marginTop: 10 },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   buttonGradient: {
     borderRadius: 10,
     paddingVertical: 12,

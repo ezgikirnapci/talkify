@@ -1,28 +1,78 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { login } from "../services/authService";
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    if (email && password) {
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Hata", "Lütfen e-posta ve şifre giriniz!");
+      return;
+    }
+
+    // Allow any valid-looking email for testing (e.g. user@example.com)
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("E-posta Hatası", "Lütfen geçerli bir e-posta adresi giriniz.");
+      return;
+    }
+
+    try {
+      console.log("Starting login process for:", email);
+      await login(email, password);
+      console.log("Login successful, navigating to home");
+
+      // Blur focused element before navigation on web to avoid aria-hidden warnings
+      if (Platform.OS === 'web') {
+        try {
+          const active = document.activeElement as HTMLElement | null;
+          if (active && typeof active.blur === 'function') active.blur();
+        } catch (e) {
+          // ignore
+        }
+      }
+
       router.push("/home");
-    } else {
-      alert("Lütfen e-posta ve şifre giriniz!");
+    } catch (error: any) {
+      console.log("Login screen catch block:", error);
+      // Show only user-friendly message under the button (do not expose raw error codes to end-users)
+      setLoginError(error.message || "E-posta veya şifre hatalıdır.");
     }
   };
+
+  const isEmailValid = email.length === 0 || /\S+@\S+\.\S+/.test(email);
+
+  // Blur focused element when screen loses focus to prevent aria-hidden focus issues on web
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (Platform.OS === 'web') {
+          try {
+            const active = document.activeElement as HTMLElement | null;
+            if (active && typeof active.blur === 'function') active.blur();
+          } catch (e) {
+            // ignore
+          }
+        }
+      };
+    }, [])
+  );
 
   return (
     <KeyboardAvoidingView
@@ -32,26 +82,35 @@ export default function Login() {
       <LinearGradient colors={["#89F7FE", "#66A6FF"]} style={styles.gradient}>
         <View style={styles.overlay}>
           <Text style={styles.title}>Talkify</Text>
-          
 
           <View style={styles.form}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEmailValid && styles.inputError]}
               placeholder="E-posta"
               placeholderTextColor="#004AAD88"
               value={email}
               onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
+            {!isEmailValid && (
+              <Text style={styles.errorText}>Lütfen geçerli bir e-posta adresi giriniz.</Text>
+            )}
+
             <TextInput
               style={styles.input}
               placeholder="Şifre"
               placeholderTextColor="#004AAD88"
               secureTextEntry
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => { setPassword(text); setLoginError(null); }}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <TouchableOpacity
+              style={[styles.button, !isEmailValid && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={!isEmailValid}
+            >
               <LinearGradient
                 colors={["#66A6FF", "#89F7FE"]}
                 style={styles.buttonGradient}
@@ -59,6 +118,8 @@ export default function Login() {
                 <Text style={styles.buttonText}>Giriş Yap</Text>
               </LinearGradient>
             </TouchableOpacity>
+
+            {loginError && <Text style={styles.errorText}>{loginError}</Text>}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Hesabın yok mu?</Text>
@@ -108,12 +169,26 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.1)",
     borderWidth: 1,
     borderRadius: 10,
-    marginBottom: 15,
+    marginBottom: 10,
     paddingHorizontal: 15,
     backgroundColor: "#fff",
     color: "#004AAD",
   },
+  inputError: {
+    borderColor: "#ff4d4d",
+    borderWidth: 2,
+  },
+  errorText: {
+    color: "#ff4d4d",
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
+    fontWeight: "600",
+  },
   button: { marginTop: 10 },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   buttonGradient: {
     borderRadius: 10,
     paddingVertical: 12,

@@ -2,8 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {Alert,Image,ImageBackground,ScrollView,StyleSheet,Text,TouchableOpacity,View,}
-from "react-native";
+import { Alert, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
 
 export default function Home() {
   const router = useRouter();
@@ -48,7 +47,7 @@ export default function Home() {
               {/* 🔹 Dersler - yönlendirme eklendi */}
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => router.push("/lessons")}
+                onPress={() => router.push("./lessons")}
               >
                 <Ionicons name="book-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Dersler</Text>
@@ -57,7 +56,7 @@ export default function Home() {
 
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => handlePress("Quizler")}
+                onPress={() => router.push("./quiz")}
               >
                 <Ionicons name="bulb-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Quizler</Text>
@@ -66,7 +65,7 @@ export default function Home() {
 
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => handlePress("Kelime Kartları")}
+                onPress={() => router.push("./flashcards")}
               >
                 <Ionicons name="chatbubbles-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Kelime Kartları</Text>
@@ -88,7 +87,7 @@ export default function Home() {
 
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => router.push("/aiChat")}
+                onPress={() => router.push("./aiChat")}
               >
                 <Ionicons name="mic-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Dil Pratiği</Text>
