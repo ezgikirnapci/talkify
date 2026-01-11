@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Find the Word</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #clue {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(5, 60px);
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 12px;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 60px;
+    cursor: pointer;
+    user-select: none;
+    border: 2px solid #ddd;
+  }
+
+  .selected {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+  }
+
+  #message {
+    margin-top: 15px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h2>Find the Word</h2>
+
+<div id="clue"></div>
+<div id="grid"></div>
+<div id="message"></div>
+
+<script>
+const levels = [
+  {
+    word: "CAT",
+    clue: "A small animal that says meow",
+    letters: ["C","A","T","R","S","L","M","O","P","E"]
+  },
+  {
+    word: "APPLE",
+    clue: "A red or green fruit",
+    letters: ["A","P","P","L","E","R","S","T","O","N"]
+  },
+  {
+    word: "SCHOOL",
+    clue: "A place where students learn",
+    letters: ["S","C","H","O","O","L","A","R","T","M"]
+  }
+];
+
+let levelIndex = 0;
+let selected = "";
+let selectedCells = [];
+
+const grid = document.getElementById("grid");
+const clue = document.getElementById("clue");
+const message = document.getElementById("message");
+
+// 🔀 SHUFFLE FUNCTION
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function loadLevel() {
+  grid.innerHTML = "";
+  selected = "";
+  selectedCells = [];
+  message.textContent = "";
+
+  const level = levels[levelIndex];
+  clue.textContent = "Clue: " + level.clue;
+
+  // copy + shuffle letters
+  const shuffledLetters = [...level.letters];
+  shuffle(shuffledLetters);
+
+  shuffledLetters.forEach(letter => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = letter;
+    cell.onclick = () => selectLetter(cell, letter);
+    grid.appendChild(cell);
+  });
+}
+
+function selectLetter(cell, letter) {
+  if (cell.classList.contains("selected")) return;
+
+  cell.classList.add("selected");
+  selected += letter;
+  selectedCells.push(cell);
+
+  const answer = levels[levelIndex].word;
+
+  if (!answer.startsWith(selected)) {
+    resetSelection();
+    return;
+  }
+
+  if (selected === answer) {
+    message.textContent = "✅ Correct!";
+    setTimeout(() => {
+      levelIndex++;
+      if (levelIndex < levels.length) {
+        loadLevel();
+      } else {
+        clue.textContent = "🎉 You found all the words!";
+        grid.innerHTML = "";
+      }
+    }, 800);
+  }
+}
+
+function resetSelection() {
+  selectedCells.forEach(c => c.classList.remove("selected"));
+  selected = "";
+  selectedCells = [];
+}
+
+loadLevel();
+</script>
+
+</body>
+</html>

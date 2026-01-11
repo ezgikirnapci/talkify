@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speed Match</title>
+
+<style>
+*{box-sizing:border-box;font-family:Arial}
+body{
+  margin:0;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.game{
+  width:95%;
+  max-width:420px;
+  background:#111827;
+  padding:20px;
+  border-radius:20px;
+  text-align:center;
+}
+h1{margin:5px 0 10px}
+.stats{
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+  margin-bottom:10px;
+}
+.word{
+  font-size:30px;
+  padding:20px;
+  background:#1f2933;
+  border-radius:15px;
+  margin-bottom:15px;
+}
+.options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.option{
+  background:#374151;
+  padding:15px;
+  border-radius:12px;
+  cursor:pointer;
+}
+.option:hover{background:#4b5563}
+.correct{background:#16a34a!important}
+.wrong{background:#dc2626!important}
+button{
+  width:100%;
+  margin-top:15px;
+  padding:12px;
+  background:#6366f1;
+  color:white;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+}
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+  <h1>⚡ Speed Match</h1>
+
+  <div class="stats">
+    <div>Level: <span id="level">1</span></div>
+    <div>Skor: <span id="score">0</span></div>
+    <div>⏱ <span id="time">30</span>s</div>
+    <div>❤️ <span id="lives">3</span></div>
+  </div>
+
+  <div class="word" id="english">READY?</div>
+
+  <div class="options hidden" id="options">
+    <div class="option" onclick="check(0)"></div>
+    <div class="option" onclick="check(1)"></div>
+    <div class="option" onclick="check(2)"></div>
+    <div class="option" onclick="check(3)"></div>
+  </div>
+
+  <button onclick="startGame()" id="startBtn">Oyunu Başlat</button>
+</div>
+
+<script>
+/* ================== KELİME HAVUZU (BÜYÜK) ================== */
+const wordLevels={
+1:[
+{en:"apple",tr:"elma"},{en:"book",tr:"kitap"},{en:"water",tr:"su"},
+{en:"house",tr:"ev"},{en:"sun",tr:"güneş"},{en:"food",tr:"yemek"},
+{en:"car",tr:"araba"},{en:"dog",tr:"köpek"},{en:"cat",tr:"kedi"},
+{en:"school",tr:"okul"},{en:"friend",tr:"arkadaş"},
+{en:"family",tr:"aile"},{en:"milk",tr:"süt"},
+{en:"tree",tr:"ağaç"},{en:"road",tr:"yol"},
+{en:"phone",tr:"telefon"},{en:"table",tr:"masa"},
+{en:"chair",tr:"sandalye"}
+],
+2:[
+{en:"holiday",tr:"tatil"},{en:"market",tr:"market"},
+{en:"country",tr:"ülke"},{en:"language",tr:"dil"},
+{en:"teacher",tr:"öğretmen"},{en:"music",tr:"müzik"},
+{en:"money",tr:"para"},{en:"movie",tr:"film"},
+{en:"travel",tr:"seyahat"},{en:"weather",tr:"hava durumu"},
+{en:"history",tr:"tarih"},{en:"culture",tr:"kültür"},
+{en:"internet",tr:"internet"},{en:"nature",tr:"doğa"},
+{en:"energy",tr:"enerji"}
+],
+3:[
+{en:"important",tr:"önemli"},{en:"dangerous",tr:"tehlikeli"},
+{en:"different",tr:"farklı"},{en:"difficult",tr:"zor"},
+{en:"decision",tr:"karar"},{en:"experience",tr:"deneyim"},
+{en:"success",tr:"başarı"},{en:"improve",tr:"geliştirmek"},
+{en:"future",tr:"gelecek"},{en:"confidence",tr:"özgüven"},
+{en:"education",tr:"eğitim"},{en:"technology",tr:"teknoloji"},
+{en:"environment",tr:"çevre"}
+],
+4:[
+{en:"responsibility",tr:"sorumluluk"},
+{en:"opportunity",tr:"fırsat"},
+{en:"communication",tr:"iletişim"},
+{en:"creativity",tr:"yaratıcılık"},
+{en:"performance",tr:"performans"},
+{en:"independent",tr:"bağımsız"},
+{en:"discipline",tr:"disiplin"},
+{en:"motivation",tr:"motivasyon"},
+{en:"leadership",tr:"liderlik"}
+],
+5:[
+{en:"self-awareness",tr:"öz farkındalık"},
+{en:"problem-solving",tr:"problem çözme"},
+{en:"productivity",tr:"verimlilik"},
+{en:"adaptability",tr:"uyum sağlama"},
+{en:"determination",tr:"azim"},
+{en:"sustainability",tr:"sürdürülebilirlik"},
+{en:"critical-thinking",tr:"eleştirel düşünme"}
+]
+};
+
+/* ================== OYUN DEĞİŞKENLERİ ================== */
+let level=1,score=0,time=30,lives=3;
+let words=[],wordIndex=0;
+let correctIndex,currentWord,timer;
+
+/* ================== SHUFFLE ================== */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+/* ================== OYUN BAŞLAT ================== */
+function startGame(){
+  level=1;score=0;
+  document.getElementById("startBtn").classList.add("hidden");
+  document.getElementById("options").classList.remove("hidden");
+  startLevel();
+}
+
+/* ================== LEVEL ================== */
+function startLevel(){
+  words=[...wordLevels[level]];
+  shuffle(words);
+  wordIndex=0;
+  time=[0,30,25,20,18,15][level];
+  lives=[0,3,3,2,2,1][level];
+  updateStats();
+  nextWord();
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    time--;
+    updateStats();
+    if(time<=0||lives<=0) endGame();
+  },1000);
+}
+
+/* ================== KELİME (TEKRARSIZ) ================== */
+function nextWord(){
+  if(wordIndex>=words.length){
+    shuffle(words);
+    wordIndex=0;
+  }
+  currentWord=words[wordIndex++];
+  document.getElementById("english").textContent=currentWord.en;
+
+  const opts=document.querySelectorAll(".option");
+  correctIndex=Math.floor(Math.random()*4);
+  let used=new Set();
+
+  opts.forEach((o,i)=>{
+    o.className="option";
+    if(i===correctIndex){
+      o.textContent=currentWord.tr;
+    }else{
+      let r;
+      do{
+        r=words[Math.floor(Math.random()*words.length)].tr;
+      }while(r===currentWord.tr||used.has(r));
+      used.add(r);
+      o.textContent=r;
+    }
+  });
+}
+
+/* ================== KONTROL ================== */
+function check(i){
+  const opts=document.querySelectorAll(".option");
+  if(i===correctIndex){
+    opts[i].classList.add("correct");
+    score+=10;
+    if(score>=level*120 && level<5){
+      level++;
+      startLevel();
+      return;
+    }
+  }else{
+    opts[i].classList.add("wrong");
+    lives--;
+  }
+  updateStats();
+  setTimeout(nextWord,400);
+}
+
+/* ================== STAT ================== */
+function updateStats(){
+  levelEl.textContent=level;
+  scoreEl.textContent=score;
+  timeEl.textContent=time;
+  livesEl.textContent=lives;
+}
+const levelEl=document.getElementById("level");
+const scoreEl=document.getElementById("score");
+const timeEl=document.getElementById("time");
+const livesEl=document.getElementById("lives");
+
+/* ================== OYUN BİTİŞ ================== */
+function endGame(){
+  clearInterval(timer);
+  document.getElementById("english").textContent="Oyun Bitti 😎";
+  document.getElementById("options").classList.add("hidden");
+  document.getElementById("startBtn").classList.remove("hidden");
+  document.getElementById("startBtn").textContent="Tekrar Oyna";
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hangman </title>
+<style>
+  :root{ --bg-dark:#071421; --card-dark:#0b2632; --muted:#9fb3d8; --accent:#60a5fa; --accent-2:#ffd166; --good:#34d399; --bad:#fb7185; --glass: rgba(255,255,255,0.03);}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--bg-dark),#03121a);font-family:Inter,system-ui,Roboto,Arial;color:#e6eef8;padding:18px}
+  .container{width:100%;max-width:720px;background:linear-gradient(180deg,var(--card-dark),#03111a);border-radius:12px;padding:18px;box-shadow:0 14px 50px rgba(0,0,0,.6);display:grid;grid-template-columns:1fr;gap:16px}
+  header{display:flex;justify-content:space-between;align-items:center}
+  h1{margin:0;font-size:20px}
+  .panel{background:linear-gradient(180deg,#05202a,#031220);padding:12px;border-radius:10px}
+  .top-stats{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:14px;margin-bottom:10px}
+  .canvas-area{display:flex;align-items:center;justify-content:center;padding:10px}
+  svg.hang{width:360px;height:260px;background:linear-gradient(180deg,#041822,#03101a);border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .word{font-size:36px;letter-spacing:8px;text-align:center;margin-top:12px}
+  .hint{color:var(--muted);text-align:center;margin-top:6px;font-size:13px}
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  button, select, input{background:#07282f;color:#e6eef8;border:1px solid #13414f;padding:10px;border-radius:8px;cursor:pointer}
+  .btn-accent{background:var(--accent);color:#02111a;font-weight:700}
+  .btn-danger{background:var(--bad);color:#03111a}
+  .keyboard{display:grid;grid-template-columns:repeat(13,1fr);gap:8px;margin-top:12px}
+  .key{padding:10px;border-radius:8px;background:#0e2a36;border:1px solid #113842;color:#cfeeff;text-align:center;font-weight:700;cursor:pointer;user-select:none}
+  .key.disabled{opacity:.35;cursor:not-allowed;background:#092028}
+  .small{font-size:13px;padding:8px 10px}
+  .footer{text-align:center;color:var(--muted);margin-top:6px;font-size:13px}
+  .flex{display:flex;gap:8px;align-items:center}
+  .stat-bubble{background:var(--glass);padding:8px;border-radius:8px;font-weight:700}
+  .settings{display:flex;gap:8px;align-items:center}
+  @media(max-width:980px){svg.hang{width:100%;height:200px}.word{font-size:28px;letter-spacing:6px}.keyboard{grid-template-columns:repeat(7,1fr)}}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(2,6,10,0.6);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .overlay.open{opacity:1;pointer-events:auto}
+  .modal{background:linear-gradient(180deg,#0f2b36,#07131a);border-radius:12px;padding:18px;min-width:300px;color:#e6eef8;box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center}
+  .modal h2{margin:0 0 10px 0}
+  .modal p{color:var(--muted)}
+  .btn-row{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  .win{animation:winPulse 900ms ease-in-out}
+  .lose{animation:loseShake 900ms ease-in-out}
+  @keyframes winPulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+  @keyframes loseShake{0%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}100%{transform:translateX(0)}}
+  .muted-small{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="Hangman game">
+    <header>
+      <h1>Hangman </h1>
+      <div class="flex">
+        <div class="settings">
+          <label class="muted-small">Kategori:
+            <select id="categorySelect" class="small"></select>
+          </label>
+          <label class="muted-small">Seviye:
+            <select id="levelSelect" class="small">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel" aria-live="polite">
+      <div class="top-stats">
+        <div class="stat-bubble">Lives: <span id="lives">6</span></div>
+        <div class="stat-bubble">Score: <span id="score">0</span></div>
+        <div class="stat-bubble">Best: <span id="best">0</span></div>
+      </div>
+
+      <div class="canvas-area">
+        <svg class="hang" id="hangSVG" viewBox="0 0 320 260" aria-hidden="true">
+          <g id="scaffold" stroke="#274a5a" stroke-width="4" fill="none">
+            <line x1="20" y1="240" x2="140" y2="240"></line>
+            <line x1="80" y1="240" x2="80" y2="20"></line>
+            <line x1="80" y1="20" x2="220" y2="20"></line>
+            <line x1="220" y1="20" x2="220" y2="50"></line>
+          </g>
+          <g id="parts" stroke="#ffd166" stroke-width="3" fill="none" stroke-linecap="round">
+            <circle id="head" cx="220" cy="80" r="22" style="opacity:0;transition:opacity .35s ease"></circle>
+            <line id="body" x1="220" y1="102" x2="220" y2="170" style="opacity:0;transition:opacity .35s ease"></line>
+            <line id="larm" x1="220" y1="120" x2="190" y2="145" style="opacity:0;transition:opacity .35s ease"></line>
+            <line id="rarm" x1="220" y1="120" x2="250" y2="145" style="opacity:0;transition:opacity .35s ease"></line>
+            <line id="lleg" x1="220" y1="170" x2="195" y2="205" style="opacity:0;transition:opacity .35s ease"></line>
+            <line id="rleg" x1="220" y1="170" x2="245" y2="205" style="opacity:0;transition:opacity .35s ease"></line>
+          </g>
+          <g id="deadEyes" stroke="#fb7185" stroke-width="2" style="opacity:0;transition:opacity .35s ease">
+            <line x1="212" y1="72" x2="218" y2="78"></line>
+            <line x1="218" y1="72" x2="212" y2="78"></line>
+            <line x1="224" y1="72" x2="230" y2="78"></line>
+            <line x1="230" y1="72" x2="224" y2="78"></line>
+          </g>
+        </svg>
+      </div>
+
+      <div class="word" id="word">LOADING</div>
+      <div class="hint" id="hint">Hint: —</div>
+
+      <div class="controls">
+        <button id="newBtn" class="btn-accent">New</button>
+        <button id="revealLetter" title="Reveal letter (-15)">Reveal letter (-15)</button>
+        <button id="revealWord" class="btn-danger">Give Up</button>
+      </div>
+
+      <div class="keyboard" id="keyboard" aria-label="on-screen keyboard" role="group"></div>
+    </section>
+
+    <div class="footer"></div>
+  </div>
+
+  <!-- modal -->
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modalBox">
+      <h2 id="modalTitle">Sonuç</h2>
+      <p id="modalMsg">Kelime: <strong id="modalWord">---</strong></p>
+      <p class="muted-small" id="modalStats">Stats</p>
+      <div class="btn-row">
+        <button id="modalReplay" class="btn-accent">Tekrar Oyna</button>
+        <button id="modalNext" class="small">Sonraki Kelime</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// --- DATA ---
+const PACKS = {
+  general: [
+    {w:"apple", hint:"a fruit"}, {w:"house", hint:"a place to live"}, {w:"bridge", hint:"connects places"},
+    {w:"library", hint:"books"}, {w:"garden", hint:"plants"}, {w:"puzzle", hint:"a brain game"}
+  ],
+  animals: [
+    {w:"cat", hint:"small pet"}, {w:"elephant", hint:"big tusked"}, {w:"giraffe", hint:"long neck"}, {w:"kangaroo", hint:"marsupial"}
+  ],
+  countries: [
+    {w:"turkey", hint:"country"}, {w:"brazil", hint:"south america"}, {w:"japan", hint:"island nation"}, {w:"canada", hint:"north america"}
+  ],
+  tech: [
+    {w:"python", hint:"programming language"}, {w:"react", hint:"ui library"}, {w:"algorithm", hint:"problem solving"}
+  ]
+};
+
+// --- STATE ---
+let secret = "", shown = [], lives = 6, MAX_LIVES = 6; let score = 0; let usedLetters = new Set();
+const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+
+// --- ELEMENTS ---
+const keyboard = document.getElementById('keyboard');
+const wordEl = document.getElementById('word');
+const hintEl = document.getElementById('hint');
+const livesEl = document.getElementById('lives');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+const newBtn = document.getElementById('newBtn');
+const revealLetterBtn = document.getElementById('revealLetter');
+const revealWordBtn = document.getElementById('revealWord');
+const categorySelect = document.getElementById('categorySelect');
+const levelSelect = document.getElementById('levelSelect');
+const overlay = document.getElementById('overlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalWord = document.getElementById('modalWord');
+const modalMsg = document.getElementById('modalMsg');
+const modalStats = document.getElementById('modalStats');
+const modalReplay = document.getElementById('modalReplay');
+const modalNext = document.getElementById('modalNext');
+
+// parts
+const head = document.getElementById('head');
+const bodyEl = document.getElementById('body');
+const larm = document.getElementById('larm');
+const rarm = document.getElementById('rarm');
+const lleg = document.getElementById('lleg');
+const rleg = document.getElementById('rleg');
+const deadEyes = document.getElementById('deadEyes');
+const parts = [head, bodyEl, larm, rarm, lleg, rleg];
+
+// --- INITIAL SETUP ---
+function populateCategories(){
+  const keys = Object.keys(PACKS);
+  categorySelect.innerHTML = keys.map(k=>`<option value="${k}">${k.charAt(0).toUpperCase()+k.slice(1)}</option>`).join('');
+}
+
+function createKeyboard(){
+  keyboard.innerHTML = "";
+  letters.forEach(ch=>{
+    const el = document.createElement('div'); el.className='key'; el.textContent=ch.toUpperCase(); el.dataset.letter=ch;
+    el.addEventListener('click',()=>handleGuess(ch,el));
+    keyboard.appendChild(el);
+  });
+}
+
+// --- GAME LOGIC ---
+function pickWord(){
+  const cat = categorySelect.value || 'general';
+  const pool = PACKS[cat] || PACKS['general'];
+  // filter by level
+  const lvl = levelSelect.value || 'normal';
+  const filtered = pool.filter(x=>{
+    if(lvl==='easy') return x.w.length <=6;
+    if(lvl==='normal') return x.w.length <=9;
+    return x.w.length >=5; // hard
+  });
+  const arr = filtered.length? filtered: pool;
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function startGame(preserveScore=false){
+  usedLetters.clear();
+  const item = pickWord();
+  secret = item.w.toLowerCase();
+  shown = Array.from(secret).map(c=> c===' ' ? ' ' : '_');
+  // lives depends on level
+  const lvl = levelSelect.value;
+  MAX_LIVES = (lvl==='easy')?10 : (lvl==='normal')?6 : 4;
+  lives = MAX_LIVES;
+  if(!preserveScore) score = Number(localStorage.getItem('hang_score')||0);
+  updateUI(); enableKeys(); hideAllParts(); saveScore();
+}
+
+function updateUI(){
+  wordEl.textContent = shown.map(c=> c===' ' ? ' ' : c.toUpperCase()).join(' ');
+  hintEl.textContent = "Hint: " + (getCurrentHint()||"—");
+  livesEl.textContent = lives;
+  scoreEl.textContent = score;
+  bestEl.textContent = localStorage.getItem('hang_best')||0;
+}
+
+function getCurrentHint(){
+  const f = PACKS[categorySelect.value].find(x=>x.w.toLowerCase()===secret);
+  return f? f.hint : "";
+}
+
+function handleGuess(letter, btn){
+  if(usedLetters.has(letter) || lives<=0) return;
+  usedLetters.add(letter);
+  if(btn) btn.classList.add('disabled');
+  let found=false;
+  for(let i=0;i<secret.length;i++){
+    if(secret[i]===letter){ shown[i]=letter; found=true; }
+  }
+  const mult = (levelSelect.value==='easy')?1 : (levelSelect.value==='normal')?1.2 : 1.5;
+  if(found){ score += Math.round(10 * mult); btn && (btn.style.background = '#144f2c'); setTimeout(()=>{btn && (btn.style.background='')},250);
+  } else { lives--; revealPart(); score = Math.max(0, score - 5); btn && (btn.style.background = '#5b1f23'); setTimeout(()=>{btn && (btn.style.background='')},250); }
+  updateUI(); checkEnd(); saveScore();
+}
+
+document.addEventListener('keydown',(e)=>{
+  const k=e.key.toLowerCase();
+  if(/^[a-z]$/.test(k)){
+    const btn = Array.from(document.querySelectorAll('.key')).find(b=>b.dataset.letter===k);
+    handleGuess(k,btn);
+  }
+});
+
+function hideAllParts(){ parts.forEach(p=>p.style.opacity=0); deadEyes.style.opacity=0; }
+function revealPart(){ const mistakes = MAX_LIVES - lives; if(mistakes>0 && mistakes<=parts.length) parts[mistakes-1].style.opacity=1; if(mistakes>=MAX_LIVES) deadEyes.style.opacity=1; }
+function revealAllParts(){ parts.forEach(p=>p.style.opacity=1); deadEyes.style.opacity=1; }
+
+function revealLetter(){
+  const cost = 15; if(score<cost){ flashScore(); return; }
+  const unopened = [];
+  for(let i=0;i<secret.length;i++) if(shown[i]==='_') unopened.push(i);
+  if(unopened.length===0) return;
+  score -= cost; const idx = unopened[Math.floor(Math.random()*unopened.length)]; const letter = secret[idx];
+  const btn = Array.from(document.querySelectorAll('.key')).find(b=>b.dataset.letter===letter);
+  if(btn) btn.classList.add('disabled'); usedLetters.add(letter);
+  for(let i=0;i<secret.length;i++) if(secret[i]===letter) shown[i]=letter;
+  updateUI(); checkEnd(); saveScore();
+}
+
+function flashScore(){ scoreEl.style.color = 'var(--bad)'; setTimeout(()=>scoreEl.style.color='',350); }
+
+function checkEnd(){
+  if(!shown.includes('_')){ onWin(); }
+  else if(lives<=0){ onLose(); }
+}
+
+function onWin(){
+  revealAllParts(); const bonus = 50; score += bonus; saveScore(); showModal(true, `Kelime: ${secret.toUpperCase()}`, `Score +${bonus}`);
+}
+function onLose(){
+  revealAllParts(); showModal(false, `Kelime: ${secret.toUpperCase()}`, `Kaybettin — kelime açıldı.`);
+}
+
+function showModal(win, title, stats){ overlay.classList.add('open'); modalTitle.textContent = win? 'You Win! 🎉' : 'You Lost'; modalWord.textContent = secret.toUpperCase(); modalMsg.textContent = title; modalStats.textContent = `Lives left: ${lives} • Score: ${score} • ${stats}`; document.getElementById('modalBox').className = win? 'modal win' : 'modal lose'; updateBest(); }
+function hideModal(){ overlay.classList.remove('open'); }
+
+function updateBest(){ const b = Number(localStorage.getItem('hang_best')||0); if(score>b) localStorage.setItem('hang_best', score); updateUI(); }
+
+function saveScore(){ localStorage.setItem('hang_score', score); updateUI(); }
+
+function giveUp(){ score = Math.max(0, score - 10); saveScore(); revealAllParts(); showModal(false, `Kelime: ${secret.toUpperCase()}`, 'Pes ettin.'); }
+
+function enableKeys(){ document.querySelectorAll('.key').forEach(b=>b.classList.remove('disabled')); }
+
+// --- EVENTS ---
+newBtn.addEventListener('click',()=> startGame(true)); // preserve score
+revealLetterBtn.addEventListener('click',()=> revealLetter());
+revealWordBtn.addEventListener('click',()=> giveUp());
+modalReplay.addEventListener('click',()=>{ hideModal(); startGame(true); });
+modalNext.addEventListener('click',()=>{ hideModal(); startGame(true); });
+overlay.addEventListener('click',(e)=>{ if(e.target===overlay) hideModal(); });
+
+// save level/category changes
+categorySelect.addEventListener('change',()=> startGame(true));
+levelSelect.addEventListener('change',()=> startGame(true));
+
+// init
+populateCategories(); createKeyboard(); score = Number(localStorage.getItem('hang_score')||0); startGame(true);
+</script>
+</body>
+</html>
