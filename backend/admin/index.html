@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talkify Admin - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Talkify <span>Admin</span></div>
+            </a>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Genel</div>
+                <a href="index.html" class="nav-link active">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Yönetim</div>
+                <a href="users.html" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Kullanıcılar</span>
+                </a>
+                <a href="words.html" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span>Kelimeler</span>
+                </a>
+                <a href="quizzes.html" class="nav-link">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quizler</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Sistem</div>
+                <a href="#" class="nav-link" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Yenile</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <h1 class="header-title">Dashboard</h1>
+            <div class="header-actions">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Ara..." id="globalSearch">
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card users">
+                    <div class="stat-header">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalUsers">-</div>
+                    <div class="stat-label">Toplam Kullanıcı</div>
+                    <div class="stat-change positive" id="newUsersWeek">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Bu hafta: -</span>
+                    </div>
+                </div>
+
+                <div class="stat-card words">
+                    <div class="stat-header">
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalWords">-</div>
+                    <div class="stat-label">Toplam Kelime</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-layer-group"></i>
+                        <span id="levelDist">-</span>
+                    </div>
+                </div>
+
+                <div class="stat-card quizzes">
+                    <div class="stat-header">
+                        <div class="stat-icon">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalQuizzes">-</div>
+                    <div class="stat-label">Toplam Quiz</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="testResults">- test tamamlandı</span>
+                    </div>
+                </div>
+
+                <div class="stat-card sessions">
+                    <div class="stat-header">
+                        <div class="stat-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="wordsLearned">-</div>
+                    <div class="stat-label">Öğrenilen Kelime</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-clock"></i>
+                        <span id="totalSessions">- oturum</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- Recent Users -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Son Kayıt Olan Kullanıcılar</h2>
+                        <a href="users.html" class="btn btn-secondary btn-sm">
+                            Tümünü Gör
+                        </a>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>E-posta</th>
+                                    <th>Seviye</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentUsersTable">
+                                <tr>
+                                    <td colspan="3" class="empty-state">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Test Results -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Son Test Sonuçları</h2>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tip</th>
+                                    <th>Skor</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentResultsTable">
+                                <tr>
+                                    <td colspan="3" class="empty-state">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/admin/dashboard');
+                const json = await response.json();
+                
+                if (json.success) {
+                    const data = json.data;
+                    
+                    // Update stats
+                    document.getElementById('totalUsers').textContent = data.users.total;
+                    document.getElementById('newUsersWeek').innerHTML = `
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Bu hafta: +${data.users.new_this_week}</span>
+                    `;
+                    
+                    document.getElementById('totalWords').textContent = data.content.words;
+                    document.getElementById('totalQuizzes').textContent = data.content.quizzes;
+                    document.getElementById('wordsLearned').textContent = data.learning.words_learned;
+                    document.getElementById('testResults').textContent = `${data.learning.test_results} test`;
+                    document.getElementById('totalSessions').textContent = `${data.learning.sessions} oturum`;
+                    
+                    // Level distribution
+                    const levels = Object.entries(data.level_distribution)
+                        .map(([level, count]) => `${level}: ${count}`)
+                        .join(' | ');
+                    document.getElementById('levelDist').textContent = levels || 'Veri yok';
+                    
+                    // Recent users table
+                    const usersHtml = data.recent_users.length > 0 
+                        ? data.recent_users.map(user => `
+                            <tr>
+                                <td>${user.email}</td>
+                                <td><span class="level-badge level-${user.language_level}">${user.language_level}</span></td>
+                                <td>${formatDate(user.created_at)}</td>
+                            </tr>
+                        `).join('')
+                        : '<tr><td colspan="3" class="empty-state">Henüz kullanıcı yok</td></tr>';
+                    document.getElementById('recentUsersTable').innerHTML = usersHtml;
+                    
+                    // Recent results table
+                    const resultsHtml = data.recent_results.length > 0
+                        ? data.recent_results.map(result => `
+                            <tr>
+                                <td><span class="badge badge-primary">${result.test_type || 'quiz'}</span></td>
+                                <td>${result.score}/${result.total_questions} (${Math.round(result.percentage)}%)</td>
+                                <td>${formatDate(result.completed_at)}</td>
+                            </tr>
+                        `).join('')
+                        : '<tr><td colspan="3" class="empty-state">Henüz test sonucu yok</td></tr>';
+                    document.getElementById('recentResultsTable').innerHTML = resultsHtml;
+                }
+            } catch (error) {
+                console.error('Dashboard yüklenirken hata:', error);
+                showToast('Dashboard yüklenemedi', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

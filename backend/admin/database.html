@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talkify Admin - Veritabanı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .table-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+        
+        .table-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+        
+        .table-card.active {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .table-card i {
+            font-size: 28px;
+            color: var(--accent-primary);
+            margin-bottom: 12px;
+        }
+        
+        .table-card h3 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .table-card .count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        
+        .table-card .table-name {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+        
+        .data-table {
+            overflow-x: auto;
+        }
+        
+        .data-table table {
+            font-size: 13px;
+        }
+        
+        .data-table th {
+            white-space: nowrap;
+            font-size: 11px;
+        }
+        
+        .data-table td {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .data-table td.json-cell {
+            font-family: monospace;
+            font-size: 11px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .breadcrumb a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Talkify <span>Admin</span></div>
+            </a>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Genel</div>
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Yönetim</div>
+                <a href="users.html" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Kullanıcılar</span>
+                </a>
+                <a href="words.html" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span>Kelimeler</span>
+                </a>
+                <a href="quizzes.html" class="nav-link">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quizler</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Sistem</div>
+                <a href="database.html" class="nav-link active">
+                    <i class="fas fa-database"></i>
+                    <span>Veritabanı</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <h1 class="header-title">Veritabanı Gezgini</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadTables()">
+                    <i class="fas fa-sync-alt"></i>
+                    Yenile
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- Tables Grid -->
+            <div class="table-grid" id="tablesGrid">
+                <!-- Dynamically populated -->
+            </div>
+            
+            <!-- Data View -->
+            <div class="card" id="dataCard" style="display: none;">
+                <div class="card-header">
+                    <div>
+                        <div class="breadcrumb">
+                            <a href="#" onclick="showTablesView()">Tablolar</a>
+                            <span>/</span>
+                            <span id="currentTableName">-</span>
+                        </div>
+                        <h2 class="card-title" id="tableTitle">Tablo Verileri</h2>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="badge badge-info" id="rowCount">0 kayıt</span>
+                    </div>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead id="tableHead">
+                            <!-- Dynamic columns -->
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Dynamic data -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body">
+                    <div id="tablePagination"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        let currentTable = null;
+        let tables = [];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTables();
+        });
+        
+        async function loadTables() {
+            try {
+                const response = await fetch('/api/admin/database/tables');
+                const json = await response.json();
+                
+                if (json.success) {
+                    tables = json.data.tables;
+                    renderTablesGrid(tables);
+                }
+            } catch (error) {
+                console.error('Tables load error:', error);
+                showToast('Tablolar yüklenemedi', 'error');
+            }
+        }
+        
+        function renderTablesGrid(tables) {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = tables.map(table => `
+                <div class="table-card ${currentTable === table.name ? 'active' : ''}" 
+                     onclick="selectTable('${table.name}')">
+                    <i class="fas ${table.icon}"></i>
+                    <h3>${table.display_name}</h3>
+                    <div class="count">${table.count}</div>
+                    <div class="table-name">${table.name}</div>
+                </div>
+            `).join('');
+        }
+        
+        async function selectTable(tableName) {
+            currentTable = tableName;
+            renderTablesGrid(tables);
+            await loadTableData(tableName, 1);
+            document.getElementById('dataCard').style.display = 'block';
+        }
+        
+        async function loadTableData(tableName, page = 1) {
+            try {
+                const response = await fetch(`/api/admin/database/${tableName}?page=${page}&per_page=15`);
+                const json = await response.json();
+                
+                if (json.success) {
+                    const { columns, rows, pagination } = json.data;
+                    const tableInfo = tables.find(t => t.name === tableName);
+                    
+                    document.getElementById('currentTableName').textContent = tableName;
+                    document.getElementById('tableTitle').textContent = tableInfo ? tableInfo.display_name : tableName;
+                    document.getElementById('rowCount').textContent = `${pagination.total_items} kayıt`;
+                    
+                    // Render header
+                    const thead = document.getElementById('tableHead');
+                    thead.innerHTML = `
+                        <tr>
+                            ${columns.map(col => `<th>${col}</th>`).join('')}
+                            <th>İşlem</th>
+                        </tr>
+                    `;
+                    
+                    // Render body
+                    const tbody = document.getElementById('tableBody');
+                    if (rows.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="${columns.length + 1}" class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Bu tabloda veri yok</p>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = rows.map(row => `
+                            <tr>
+                                ${columns.map(col => {
+                                    let value = row[col];
+                                    if (value === null || value === undefined) {
+                                        return `<td style="color: var(--text-muted);">NULL</td>`;
+                                    }
+                                    if (typeof value === 'object') {
+                                        return `<td class="json-cell" title='${JSON.stringify(value)}'>${JSON.stringify(value).substring(0, 50)}...</td>`;
+                                    }
+                                    if (typeof value === 'string' && value.length > 50) {
+                                        return `<td title="${value}">${value.substring(0, 50)}...</td>`;
+                                    }
+                                    return `<td>${value}</td>`;
+                                }).join('')}
+                                <td>
+                                    <button class="btn btn-danger btn-icon btn-sm" 
+                                            onclick="deleteRow('${tableName}', ${row.id})" 
+                                            title="Sil">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    // Pagination
+                    document.getElementById('tablePagination').innerHTML = 
+                        createTablePagination(pagination, tableName);
+                }
+            } catch (error) {
+                console.error('Table data load error:', error);
+                showToast('Tablo verileri yüklenemedi', 'error');
+            }
+        }
+        
+        function createTablePagination(pagination, tableName) {
+            const { page, total_pages, has_prev, has_next } = pagination;
+            
+            if (total_pages <= 1) return '';
+            
+            let html = '<div class="pagination">';
+            
+            html += `
+                <button class="pagination-btn" 
+                        onclick="loadTableData('${tableName}', ${page - 1})" 
+                        ${!has_prev ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+            
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(total_pages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <button class="pagination-btn ${i === page ? 'active' : ''}" 
+                            onclick="loadTableData('${tableName}', ${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            html += `
+                <button class="pagination-btn" 
+                        onclick="loadTableData('${tableName}', ${page + 1})" 
+                        ${!has_next ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+            
+            html += '</div>';
+            return html;
+        }
+        
+        async function deleteRow(tableName, rowId) {
+            if (!confirm(`Bu kaydı silmek istediğinize emin misiniz? (ID: ${rowId})`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/database/${tableName}/${rowId}`, {
+                    method: 'DELETE'
+                });
+                const json = await response.json();
+                
+                if (json.success) {
+                    showToast('Kayıt silindi');
+                    loadTables();
+                    loadTableData(tableName);
+                } else {
+                    showToast(json.message, 'error');
+                }
+            } catch (error) {
+                showToast('Silme işlemi başarısız', 'error');
+            }
+        }
+        
+        function showTablesView() {
+            currentTable = null;
+            document.getElementById('dataCard').style.display = 'none';
+            renderTablesGrid(tables);
+        }
+    </script>
+</body>
+</html>

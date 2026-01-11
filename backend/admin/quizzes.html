@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talkify Admin - Quizler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Talkify <span>Admin</span></div>
+            </a>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Genel</div>
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Yönetim</div>
+                <a href="users.html" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Kullanıcılar</span>
+                </a>
+                <a href="words.html" class="nav-link">
+                    <i class="fas fa-book"></i>
+                    <span>Kelimeler</span>
+                </a>
+                <a href="quizzes.html" class="nav-link active">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Quizler</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <h1 class="header-title">Quiz Yönetimi</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showAddQuizModal()">
+                    <i class="fas fa-plus"></i>
+                    Yeni Quiz
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Tüm Quizler</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Başlık</th>
+                                <th>Açıklama</th>
+                                <th>Seviye</th>
+                                <th>Kategori</th>
+                                <th>Soru</th>
+                                <th>Deneme</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quizzesTableBody">
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <div class="spinner" style="margin: 20px auto;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body">
+                    <div id="quizzesPagination"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quiz Modal -->
+    <div class="modal-overlay" id="quizModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Yeni Quiz Oluştur</h3>
+                <button class="modal-close" onclick="closeModal('quizModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="quizForm" onsubmit="event.preventDefault(); saveQuiz();">
+                    <div class="form-group">
+                        <label class="form-label">Quiz Başlığı *</label>
+                        <input type="text" class="form-control" id="quizTitle" required placeholder="Örn: Temel Kelimeler Testi">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="quizDescription" placeholder="Quiz hakkında kısa bir açıklama..."></textarea>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Seviye</label>
+                            <select class="form-control" id="quizLevel">
+                                <option value="A1">A1</option>
+                                <option value="A2">A2</option>
+                                <option value="B1">B1</option>
+                                <option value="B2">B2</option>
+                                <option value="C1">C1</option>
+                                <option value="C2">C2</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Kategori</label>
+                            <select class="form-control" id="quizCategory">
+                                <option value="Vocabulary">Vocabulary</option>
+                                <option value="Grammar">Grammar</option>
+                                <option value="Mixed">Mixed</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('quizModal')">İptal</button>
+                <button class="btn btn-primary" onclick="saveQuiz()">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQuizzes();
+        });
+        
+        function showAddQuizModal() {
+            document.getElementById('quizForm').reset();
+            openModal('quizModal');
+        }
+        
+        async function saveQuiz() {
+            const data = {
+                title: document.getElementById('quizTitle').value,
+                description: document.getElementById('quizDescription').value,
+                level: document.getElementById('quizLevel').value,
+                category: document.getElementById('quizCategory').value
+            };
+            
+            try {
+                await apiCall('/quizzes', 'POST', data);
+                showToast('Quiz oluşturuldu');
+                closeModal('quizModal');
+                loadQuizzes();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

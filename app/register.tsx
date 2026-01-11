@@ -111,8 +111,16 @@ export default function Register() {
         }
       }
 
-      Alert.alert("Başarılı 🎉", "Kayıt işlemi tamamlandı!");
-      router.push("/");
+      Alert.alert(
+        "Başarılı 🎉",
+        "Başarıyla kaydoldunuz! Giriş sayfasına yönlendiriliyorsunuz.",
+        [
+          {
+            text: "Tamam",
+            onPress: () => router.push("/"),
+          },
+        ]
+      );
     } catch (error: any) {
       console.log("Register screen catch block:", error);
       const friendly = error.message || 'Kayıt oluşturulamadı.';

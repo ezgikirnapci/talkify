@@ -1,5 +1,4 @@
-# Re-export all models from the models package for backward compatibility
-# This file exists for backward compatibility with existing imports
+# Import all models from the models module for easy access
 from models.models import (
     db,
     User,
