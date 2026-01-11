@@ -2,8 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {Alert,Image,ImageBackground,ScrollView,StyleSheet,Text,TouchableOpacity,View,}
-from "react-native";
+import {
+  Alert,
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Home() {
   const router = useRouter();
@@ -14,6 +22,7 @@ export default function Home() {
     example: "Success requires persistence.",
   });
 
+  // 🔹 Sadece aktif OLMAYAN bölümler için
   const handlePress = (section: string) => {
     Alert.alert("Yakında!", `${section} bölümü henüz aktif değil.`);
   };
@@ -45,7 +54,7 @@ export default function Home() {
 
             {/* Kartlar */}
             <View style={styles.cardContainer}>
-              {/* 🔹 Dersler - yönlendirme eklendi */}
+              {/* Dersler */}
               <TouchableOpacity
                 style={styles.card}
                 onPress={() => router.push("/lessons")}
@@ -55,27 +64,34 @@ export default function Home() {
                 <Text style={styles.desc}>A1 - C2 seviye içerikler</Text>
               </TouchableOpacity>
 
+              {/* Quizler */}
               <TouchableOpacity
                 style={styles.card}
                 onPress={() => handlePress("Quizler")}
               >
                 <Ionicons name="bulb-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Quizler</Text>
-                <Text style={styles.desc}>Bilgini test et </Text>
+                <Text style={styles.desc}>Bilgini test et</Text>
               </TouchableOpacity>
 
+              {/* Kelime Kartları */}
               <TouchableOpacity
                 style={styles.card}
                 onPress={() => handlePress("Kelime Kartları")}
               >
-                <Ionicons name="chatbubbles-outline" size={42} color="#004AAD" />
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={42}
+                  color="#004AAD"
+                />
                 <Text style={styles.cardText}>Kelime Kartları</Text>
                 <Text style={styles.desc}>Ezberle & Tekrar Et</Text>
               </TouchableOpacity>
 
+              {/* 🎮 OYUN ALANI – ASIL DÜZELEN YER */}
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => handlePress("Oyun Alanı")}
+                onPress={() => router.push("/games")}
               >
                 <Ionicons
                   name="game-controller-outline"
@@ -83,16 +99,17 @@ export default function Home() {
                   color="#004AAD"
                 />
                 <Text style={styles.cardText}>Oyun Alanı</Text>
-                <Text style={styles.desc}>Eğlenerek öğren </Text>
+                <Text style={styles.desc}>Eğlenerek öğren</Text>
               </TouchableOpacity>
 
+              {/* Dil Pratiği */}
               <TouchableOpacity
                 style={styles.card}
                 onPress={() => router.push("/aiChat")}
               >
                 <Ionicons name="mic-outline" size={42} color="#004AAD" />
                 <Text style={styles.cardText}>Dil Pratiği</Text>
-                <Text style={styles.desc}>Konuşarak öğren </Text>
+                <Text style={styles.desc}>Konuşarak öğren</Text>
               </TouchableOpacity>
             </View>
 
@@ -100,7 +117,9 @@ export default function Home() {
             <View style={styles.wordBox}>
               <Text style={styles.wordTitle}>Günün Kelimesi 🌟</Text>
               <Text style={styles.word}>{dailyWord.word}</Text>
-              <Text style={styles.wordMeaning}>n. {dailyWord.meaning}</Text>
+              <Text style={styles.wordMeaning}>
+                n. {dailyWord.meaning}
+              </Text>
               <Text style={styles.wordExample}>
                 Example: “{dailyWord.example}”
               </Text>
@@ -158,8 +177,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 1, height: 3 },
   },
-  cardText: { color: "#004AAD", fontSize: 18, fontWeight: "700", marginTop: 8 },
-  desc: { color: "#004AAD", fontSize: 13, marginTop: 4, textAlign: "center" },
+  cardText: {
+    color: "#004AAD",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 8,
+  },
+  desc: {
+    color: "#004AAD",
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: "center",
+  },
 
   wordBox: {
     width: "100%",
@@ -176,7 +205,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
   },
-  word: { color: "#004AAD", fontSize: 22, fontWeight: "bold", marginBottom: 4 },
+  word: {
+    color: "#004AAD",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
   wordMeaning: { color: "#004AAD", fontSize: 16 },
   wordExample: {
     color: "#004AAD",

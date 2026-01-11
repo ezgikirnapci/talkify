@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Catch the Meaning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  overflow: hidden;
+}
+
+#game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#info {
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  z-index: 10;
+}
+
+#basket {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 120px;
+  height: 30px;
+  background: #ffcc00;
+  border-radius: 15px;
+  transform: translateX(-50%);
+}
+
+.word {
+  position: absolute;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  border-radius: 20px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 20;
+}
+
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+  <div id="info">
+    🎯 Catch words about: <b id="category">WEATHER</b> |
+    ⭐ Score: <span id="score">0</span> |
+    ❤️ Lives: <span id="lives">3</span> |
+    🔥 Level: <span id="level">1</span>
+  </div>
+
+  <div id="basket"></div>
+
+  <div id="overlay">
+    <h1>Catch the Meaning</h1>
+    <p>Catch only the correct words!</p>
+    <button onclick="startGame()">Start Game</button>
+  </div>
+</div>
+
+<script>
+const categories = {
+  WEATHER: ["rain", "storm", "cloud", "snow", "wind", "fog", "sunny", "thunder"],
+  EMOTION: ["happy", "sad", "angry", "nervous", "excited", "lonely", "calm"],
+  FOOD: ["pizza", "burger", "apple", "pasta", "cheese", "bread"],
+  SCHOOL: ["teacher", "exam", "student", "classroom", "homework"]
+};
+
+let activeCategory;
+let usedWords = [];
+let score = 0;
+let lives = 3;
+let level = 1;
+let speed = 1.5;
+let gameInterval;
+
+const basket = document.getElementById("basket");
+const game = document.getElementById("game");
+
+let basketX = window.innerWidth / 2;
+
+document.addEventListener("mousemove", e => {
+  basketX = e.clientX;
+  basket.style.left = basketX + "px";
+});
+
+document.addEventListener("touchmove", e => {
+  basketX = e.touches[0].clientX;
+  basket.style.left = basketX + "px";
+});
+
+function startGame() {
+  document.getElementById("overlay").style.display = "none";
+  resetGame();
+  gameInterval = setInterval(spawnWord, 1000);
+}
+
+function resetGame() {
+  score = 0;
+  lives = 3;
+  level = 1;
+  speed = 1.5;
+  usedWords = [];
+  chooseCategory();
+  updateUI();
+}
+
+function chooseCategory() {
+  const keys = Object.keys(categories);
+  activeCategory = keys[Math.floor(Math.random() * keys.length)];
+  document.getElementById("category").textContent = activeCategory;
+}
+
+function spawnWord() {
+  const allWords = Object.values(categories).flat();
+  let word;
+
+  do {
+    word = allWords[Math.floor(Math.random() * allWords.length)];
+  } while (usedWords.includes(word));
+
+  usedWords.push(word);
+  if (usedWords.length > 30) usedWords.shift();
+
+  const div = document.createElement("div");
+  div.className = "word";
+  div.textContent = word;
+  div.style.left = Math.random() * (window.innerWidth - 100) + "px";
+  div.style.top = "-40px";
+  game.appendChild(div);
+
+  let y = -40;
+  const fall = setInterval(() => {
+    y += speed;
+    div.style.top = y + "px";
+
+    const wordRect = div.getBoundingClientRect();
+    const basketRect = basket.getBoundingClientRect();
+
+    if (
+      wordRect.bottom >= basketRect.top &&
+      wordRect.left < basketRect.right &&
+      wordRect.right > basketRect.left
+    ) {
+      if (categories[activeCategory].includes(word)) {
+        score += 10;
+        if (score % 50 === 0) levelUp();
+      } else {
+        lives--;
+      }
+      updateUI();
+      div.remove();
+      clearInterval(fall);
+    }
+
+    if (y > window.innerHeight) {
+      div.remove();
+      clearInterval(fall);
+    }
+
+    if (lives <= 0) endGame();
+  }, 16);
+}
+
+function levelUp() {
+  level++;
+  speed += 0.5;
+  chooseCategory();
+}
+
+function updateUI() {
+  document.getElementById("score").textContent = score;
+  document.getElementById("lives").textContent = lives;
+  document.getElementById("level").textContent = level;
+}
+
+function endGame() {
+  clearInterval(gameInterval);
+  document.getElementById("overlay").style.display = "flex";
+  document.getElementById("overlay").innerHTML = `
+    <h1>Game Over</h1>
+    <p>Score: ${score}</p>
+    <button onclick="location.reload()">Play Again</button>
+  `;
+}
+</script>
+
+</body>
+</html>

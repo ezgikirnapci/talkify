@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Emoji Hafıza - Seviye Modu</title>
+
+<style>
+:root{
+  --bg1:#ffecd2; --bg2:#fcb69f;
+  --card-size:88px;
+  --gap:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  margin:0;
+  padding:16px;
+  font-family:Inter,Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+header{
+  width:100%;
+  max-width:920px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+h1{
+  margin:0;
+  font-size:18px;
+  text-align:center;
+}
+
+.top-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+
+.controls{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+button{
+  background:#fff;
+  border:none;
+  padding:9px 12px;
+  border-radius:12px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+  touch-action:manipulation;
+}
+
+.level-btn.active{
+  background:linear-gradient(90deg,#ffd27a,#ff9a66);
+}
+
+#info{
+  display:flex;
+  gap:10px;
+  font-size:13px;
+}
+
+#game-wrap{
+  width:100%;
+  max-width:920px;
+  margin-top:12px;
+}
+
+#game-board{
+  display:grid;
+  grid-template-columns:repeat(4,var(--card-size));
+  gap:var(--gap);
+  justify-content:center;
+}
+
+.card{
+  width:var(--card-size);
+  height:var(--card-size);
+  perspective:800px;
+}
+
+.card-inner{
+  width:100%;
+  height:100%;
+  transition:.5s;
+  transform-style:preserve-3d;
+}
+
+.card.flipped .card-inner{transform:rotateY(180deg)}
+
+.card-front,.card-back{
+  position:absolute;
+  width:100%;
+  height:100%;
+  border-radius:12px;
+  backface-visibility:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+
+.card-front{
+  background:linear-gradient(180deg,#4CAF50,#2e8b57);
+}
+
+.card-back{
+  background:#fff;
+  transform:rotateY(180deg);
+}
+
+.card-emoji{font-size:34px}
+.card-text{font-size:13px;font-weight:700}
+
+.card.matched{
+  opacity:.8;
+  pointer-events:none;
+}
+
+/* 🔔 Toast */
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#1b2b2b;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:14px;
+  font-size:14px;
+  font-weight:600;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+  z-index:9999;
+}
+.toast.show{opacity:1}
+
+/* 📱 Mobil */
+@media (max-width:520px){
+  :root{--card-size:82px}
+  #game-board{grid-template-columns:repeat(3,var(--card-size))}
+  .top-row{flex-direction:column}
+  .controls{justify-content:center}
+  #info{justify-content:center}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Emoji Hafıza — <span id="levelLabel">Easy</span></h1>
+  <div class="top-row">
+    <div class="controls">
+      <button class="level-btn active" data-level="easy">Easy</button>
+      <button class="level-btn" data-level="medium">Medium</button>
+      <button class="level-btn" data-level="hard">Hard</button>
+      <button id="restartBtn">Yeniden</button>
+      <button id="hintBtn">İpucu −5</button>
+    </div>
+    <div id="info">
+      <div id="score">Score: 0</div>
+      <div id="timer">⏱ 00:00</div>
+    </div>
+  </div>
+</header>
+
+<main id="game-wrap">
+  <div id="game-board"></div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+const pools={
+  easy:[
+    {eng:"Apple",tr:"Elma",emoji:"🍎"},
+    {eng:"Cat",tr:"Kedi",emoji:"🐱"},
+    {eng:"Dog",tr:"Köpek",emoji:"🐶"},
+    {eng:"Car",tr:"Araba",emoji:"🚗"}
+  ],
+  medium:[
+    {eng:"Apple",tr:"Elma",emoji:"🍎"},
+    {eng:"Cat",tr:"Kedi",emoji:"🐱"},
+    {eng:"Dog",tr:"Köpek",emoji:"🐶"},
+    {eng:"House",tr:"Ev",emoji:"🏠"},
+    {eng:"Book",tr:"Kitap",emoji:"📚"},
+    {eng:"Sun",tr:"Güneş",emoji:"☀️"}
+  ],
+  hard:[
+    {eng:"Apple",tr:"Elma",emoji:"🍎"},
+    {eng:"Cat",tr:"Kedi",emoji:"🐱"},
+    {eng:"Dog",tr:"Köpek",emoji:"🐶"},
+    {eng:"House",tr:"Ev",emoji:"🏠"},
+    {eng:"Book",tr:"Kitap",emoji:"📚"},
+    {eng:"Sun",tr:"Güneş",emoji:"☀️"},
+    {eng:"Moon",tr:"Ay",emoji:"🌙"},
+    {eng:"Flower",tr:"Çiçek",emoji:"🌸"}
+  ]
+};
+
+const config={easy:45,medium:75,hard:110};
+
+const board=document.getElementById('game-board');
+const levelBtns=document.querySelectorAll('.level-btn');
+const scoreEl=document.getElementById('score');
+const timerEl=document.getElementById('timer');
+const restartBtn=document.getElementById('restartBtn');
+const hintBtn=document.getElementById('hintBtn');
+const levelLabel=document.getElementById('levelLabel');
+
+let level="easy",cards=[],first=null,second=null,lock=false,score=0,time=0,timer;
+
+function shuffle(a){return a.sort(()=>Math.random()-.5)}
+
+function build(){
+  board.innerHTML="";
+  const pool=shuffle([...pools[level]]);
+  cards=shuffle(pool.flatMap(w=>[
+    {...w,id:w.eng+"e",txt:w.eng},
+    {...w,id:w.eng+"t",txt:w.tr}
+  ]));
+
+  cards.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="card";
+    d.dataset.id=c.id;
+    d.dataset.pair=c.eng;
+    d.innerHTML=`
+      <div class="card-inner">
+        <div class="card-front"></div>
+        <div class="card-back">
+          <div class="card-emoji">${c.emoji}</div>
+          <div class="card-text">${c.txt}</div>
+        </div>
+      </div>`;
+    d.onclick=()=>clickCard(d);
+    board.appendChild(d);
+  });
+}
+
+function clickCard(el){
+  if(lock||el.classList.contains("flipped"))return;
+  el.classList.add("flipped");
+  if(!first){first=el;return;}
+  second=el;lock=true;
+  setTimeout(check,600);
+}
+
+function check(){
+  if(first.dataset.pair===second.dataset.pair){
+    first.classList.add("matched");
+    second.classList.add("matched");
+    score+=10;
+  }else{
+    first.classList.remove("flipped");
+    second.classList.remove("flipped");
+    score=Math.max(0,score-3);
+  }
+  first=second=null;lock=false;
+  scoreEl.textContent="Score: "+score;
+  if(!document.querySelector(".card:not(.matched)")){
+    showToast("🎉 Tebrikler! Skor: "+score);
+  }
+}
+
+function start(){
+  score=0;
+  scoreEl.textContent="Score: 0";
+  levelLabel.textContent=level.toUpperCase();
+  build();
+  clearInterval(timer);
+  time=config[level];
+  timerEl.textContent="⏱ "+time;
+  timer=setInterval(()=>{
+    time--;
+    timerEl.textContent="⏱ "+time;
+    if(time<=0){
+      clearInterval(timer);
+      showToast("⏰ Süre doldu!");
+    }
+  },1000);
+}
+
+levelBtns.forEach(b=>{
+  b.onclick=()=>{
+    level=b.dataset.level;
+    levelBtns.forEach(x=>x.classList.toggle("active",x===b));
+    start();
+  }
+});
+
+restartBtn.onclick=start;
+hintBtn.onclick=()=>showToast("👀 İpucu kartlara dikkat!");
+
+start();
+</script>
+</body>
+</html>
