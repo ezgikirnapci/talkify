@@ -20,10 +20,10 @@ import {
 import { Bubble, GiftedChat, IMessage } from "react-native-gifted-chat";
 
 // 🔑 Google Gemini API Key - .env dosyasından alınmalı
-const GEMINI_API_KEY = "AIzaSyAE_bFI3G-aF90wBLyD_S8WZ14bdHJZrPQ";
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 
 // 🔒 LIMITLER
-const DAILY_LIMIT = 20;
+const DAILY_LIMIT = 50;
 const MAX_RECORD_SECONDS = 20;
 const MAX_TEXT_LENGTH = 200;
 
@@ -193,7 +193,7 @@ export default function AiChat() {
                 : "Casual learning feedback.";
 
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

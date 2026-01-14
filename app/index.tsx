@@ -3,14 +3,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { login } from "../services/authService";
 
@@ -19,6 +20,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,6 +36,7 @@ export default function Login() {
     }
 
     try {
+      setIsLoading(true);
       console.log("Starting login process for:", email);
       await login(email, password);
       console.log("Login successful, navigating to home");
@@ -53,6 +56,8 @@ export default function Login() {
       console.log("Login screen catch block:", error);
       // Show only user-friendly message under the button (do not expose raw error codes to end-users)
       setLoginError(error.message || "E-posta veya şifre hatalıdır.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -107,15 +112,19 @@ export default function Login() {
             />
 
             <TouchableOpacity
-              style={[styles.button, !isEmailValid && styles.buttonDisabled]}
+              style={[styles.button, (!isEmailValid || isLoading) && styles.buttonDisabled]}
               onPress={handleLogin}
-              disabled={!isEmailValid}
+              disabled={!isEmailValid || isLoading}
             >
               <LinearGradient
                 colors={["#66A6FF", "#89F7FE"]}
                 style={styles.buttonGradient}
               >
-                <Text style={styles.buttonText}>Giriş Yap</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Giriş Yap</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 

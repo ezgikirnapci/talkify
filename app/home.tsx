@@ -1,10 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-<<<<<<< HEAD
-import { Alert, Image, ImageBackground, ScrollView, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
-=======
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -15,20 +12,82 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
->>>>>>> main
+import { useAuth } from "../contexts/AuthContext";
+import { getDailyWord } from "../services/flashcardService";
+import { getStreak, logActivity } from "../services/gamificationService";
 
 export default function Home() {
   const router = useRouter();
+  const { user, token, logout } = useAuth();
 
   const [dailyWord, setDailyWord] = useState({
     word: "Persistence",
     meaning: "Azim, kararlılık",
     example: "Success requires persistence.",
   });
+  const [streakCount, setStreakCount] = useState(0);
 
-  // 🔹 Sadece aktif OLMAYAN bölümler için
+  // Fetch daily word and streak on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      // Log activity and update streak
+      if (token) {
+        try {
+          const streakResult = await logActivity(token);
+          setStreakCount(streakResult.streak_count);
+        } catch (error) {
+          console.log("Streak update failed:", error);
+          try {
+            const streakInfo = await getStreak(token);
+            setStreakCount(streakInfo.streak_count);
+          } catch (e) {
+            // Backend may be offline
+          }
+        }
+      }
+
+      // Fetch daily word
+      try {
+        const result = await getDailyWord(token);
+        if (result?.word) {
+          setDailyWord({
+            word: result.word.word,
+            meaning: result.word.meaning,
+            example: result.word.example_sentence || "Example not available.",
+          });
+        }
+      } catch (error) {
+        console.log("Daily word fetch failed, using default:", error);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  const displayName = user?.username || user?.email?.split('@')[0] || "Kullanıcı";
+
+  // Sadece aktif OLMAYAN bölümler için
   const handlePress = (section: string) => {
     Alert.alert("Yakında!", `${section} bölümü henüz aktif değil.`);
+  };
+
+  // Çıkış butonu
+  const handleLogout = () => {
+    Alert.alert(
+      "Çıkış Yap",
+      "Hesabından çıkmak istediğinden emin misin?",
+      [
+        { text: "İptal", style: "cancel" },
+        {
+          text: "Çıkış Yap",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.replace("/");
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -46,14 +105,22 @@ export default function Home() {
             <View style={styles.header}>
               <View>
                 <Text style={styles.greeting}>Hoş geldin 👋</Text>
-                <Text style={styles.username}>Kullanıcı</Text>
+                <Text style={styles.username}>{displayName}</Text>
+                {streakCount > 0 && (
+                  <Text style={styles.streak}>🔥 {streakCount} gün seri!</Text>
+                )}
               </View>
-              <Image
-                source={{
-                  uri: "https://cdn-icons-png.flaticon.com/512/847/847969.png",
-                }}
-                style={styles.profileImage}
-              />
+              <View style={styles.headerRight}>
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                  <Ionicons name="log-out-outline" size={24} color="#004AAD" />
+                </TouchableOpacity>
+                <Image
+                  source={{
+                    uri: user?.avatar_url || "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+                  }}
+                  style={styles.profileImage}
+                />
+              </View>
             </View>
 
             {/* Kartlar */}
@@ -95,7 +162,7 @@ export default function Home() {
               {/* 🎮 OYUN ALANI – ASIL DÜZELEN YER */}
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => router.push("/games")}
+                onPress={() => router.push("./games")}
               >
                 <Ionicons
                   name="game-controller-outline"
@@ -221,5 +288,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     fontStyle: "italic",
+  },
+  streak: {
+    color: "#FF6B35",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoutBtn: {
+    padding: 8,
+    marginRight: 10,
   },
 });

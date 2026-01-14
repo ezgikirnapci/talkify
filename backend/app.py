@@ -5,11 +5,12 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
+import requests  # SDK yerine requests kullanıyoruz
 
 from config import get_config
 from models import db
@@ -17,6 +18,9 @@ from models import db
 # Load environment variables
 load_dotenv()
 
+
+# API Key'i güvenle ortam değişkeninden alıyoruz
+GENAI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAV-uR7n3kIIg0Fnyc6wMbSxMGYbjBy3nY")
 
 def create_app(config_class=None):
     """
@@ -86,6 +90,9 @@ def create_app(config_class=None):
     
     # Error handlers
     register_error_handlers(app)
+    
+    # AI routes (chat & transcribe)
+    register_ai_routes(app)
     
     # Create Database tables
     with app.app_context():
@@ -262,6 +269,74 @@ def register_admin_routes(app):
     def serve_admin_js(filename):
         """Serve admin JS files"""
         return send_from_directory(os.path.join(admin_folder, 'js'), filename)
+
+
+def register_ai_routes(app):
+    """Register AI-related routes (chat and transcribe)"""
+    
+    @app.route('/api/ai/chat', methods=['POST'])
+    def ai_chat():
+        data = request.json
+        user_message = data.get('message', '')
+        prompt_context = data.get('context', '')
+
+        if not user_message:
+            return jsonify({"error": "Mesaj boş olamaz"}), 400
+
+        # SDK yerine doğrudan URL'e istek atıyoruz
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GENAI_API_KEY}"
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": f"{prompt_context} User said: {user_message}"}]
+            }]
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            
+            ai_text = result['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({"reply": ai_text})
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/ai/transcribe', methods=['POST'])
+    def ai_transcribe():
+        data = request.json
+        base64_audio = data.get('audio', '')
+
+        if not base64_audio:
+            return jsonify({"error": "Ses verisi yok"}), 400
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GENAI_API_KEY}"
+        
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": "Transcribe this audio. Only return the transcribed text, nothing else."},
+                    {
+                        "inline_data": {
+                            "mime_type": "audio/m4a",
+                            "data": base64_audio
+                        }
+                    }
+                ]
+            }]
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            
+            ai_text = result['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({"transcription": ai_text.strip()})
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 # Create app instance

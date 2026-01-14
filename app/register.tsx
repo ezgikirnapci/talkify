@@ -2,7 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
 import { register } from "../services/authService";
 
 export default function Register() {
@@ -12,6 +12,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
 
@@ -97,6 +98,7 @@ export default function Register() {
     }
 
     try {
+      setIsLoading(true);
       console.log("Starting registration for:", email);
       await register(email, password, name);
       console.log("Registration successful");
@@ -130,6 +132,8 @@ export default function Register() {
         setRegisterError(`${friendly} (${(error as any).serverMessage})`);
       }
       Alert.alert("Hata", friendly);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -185,15 +189,19 @@ export default function Register() {
             <Text style={styles.helperText}>{passwordHelp}</Text>
 
             <TouchableOpacity
-              style={[styles.button, !isEmailValid && styles.buttonDisabled]}
+              style={[styles.button, (!isEmailValid || isLoading) && styles.buttonDisabled]}
               onPress={handleRegister}
-              disabled={!isEmailValid}
+              disabled={!isEmailValid || isLoading}
             >
               <LinearGradient
                 colors={["#66A6FF", "#89F7FE"]}
                 style={styles.buttonGradient}
               >
-                <Text style={styles.buttonText}>Kayıt Ol</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Kayıt Ol</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 

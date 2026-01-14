@@ -3,9 +3,10 @@ import {
     signInWithEmailAndPassword,
     signOut
 } from "firebase/auth";
+import { API_BASE_URL } from "../config/apiConfig";
 import { auth } from "../config/firebaseConfig";
 
-const API_URL = 'http://10.10.12.148:5000/api'; // Current Local IP
+const API_URL = API_BASE_URL;
 
 export const register = async (email: string, password: string, username?: string) => {
     // Trim inputs to avoid accidental leading/trailing spaces
@@ -19,6 +20,7 @@ export const register = async (email: string, password: string, username?: strin
         console.log("Firebase registration success, UID:", user.uid);
 
         // 2. Kendi backend'imize bilgileri gönder (Senkronizasyon)
+        let backendError: string | null = null;
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
@@ -27,15 +29,27 @@ export const register = async (email: string, password: string, username?: strin
                 },
                 body: JSON.stringify({
                     email,
-                    password, // Hash'lenmesi için backend'e gönderiyoruz (opsiyonel, Firebase UID de kullanılabilir)
+                    password,
                     username: username || email.split('@')[0],
                     firebase_uid: user.uid
                 }),
             });
-            console.log("Backend sync status:", response.status);
-        } catch (backendError) {
-            console.error("Backend sync failed but user created in Firebase:", backendError);
-            // Attempt to roll back Firebase creation if backend sync fails to keep data consistent
+
+            const responseData = await response.json();
+            console.log("Backend sync response:", response.status, responseData);
+
+            if (!response.ok) {
+                // Backend returned an error (validation failed, user exists, etc.)
+                backendError = responseData.error || responseData.message || 'Backend kayıt başarısız.';
+                console.error("Backend registration failed:", backendError);
+            }
+        } catch (networkError: any) {
+            console.error("Backend sync network error:", networkError);
+            backendError = 'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.';
+        }
+
+        // If backend sync failed, roll back Firebase user
+        if (backendError) {
             try {
                 if (user && typeof (user as any).delete === 'function') {
                     await (user as any).delete();
@@ -45,9 +59,9 @@ export const register = async (email: string, password: string, username?: strin
                 console.error('Failed to delete Firebase user after backend failure:', deleteErr);
             }
 
-            const err: any = new Error('Kayıt sunucuyla senkronize edilemedi; lütfen tekrar deneyin.');
+            const err: any = new Error(backendError);
             err.code = 'backend_sync_failed';
-            err.details = backendError;
+            err.serverMessage = backendError;
             throw err;
         }
 
