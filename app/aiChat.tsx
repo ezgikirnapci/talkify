@@ -19,8 +19,9 @@ import {
 } from "react-native";
 import { Bubble, GiftedChat, IMessage } from "react-native-gifted-chat";
 
-// 🔑 Google Gemini API Key - .env dosyasından alınmalı
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
+
+
+const API_URL = "http://192.168.1.XX:5000/api";
 
 // 🔒 LIMITLER
 const DAILY_LIMIT = 50;
@@ -134,32 +135,18 @@ export default function AiChat() {
                 encoding: 'base64',
             });
 
-            // Gemini 1.5 Flash kullanarak sesi metne çevir
-            const sttRes = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    { text: "Transcribe this audio. Only return the transcribed text, nothing else." },
-                                    {
-                                        inline_data: {
-                                            mime_type: "audio/m4a",
-                                            data: base64Audio,
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    }),
-                }
-            );
+            // Google yerine KENDİ SUNUCUMUZA istek atıyoruz
+            const sttRes = await fetch(`${API_URL}/transcribe`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    audio: base64Audio
+                }),
+            });
 
             const sttData = await sttRes.json();
-            const transcribedText = sttData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (sttData.error) throw new Error(sttData.error);
+            const transcribedText = sttData.transcription;
 
             if (transcribedText) {
                 setDailyAttempts((prev) => prev + 1);
@@ -175,8 +162,8 @@ export default function AiChat() {
                 await sendToGemini(transcribedText.slice(0, MAX_TEXT_LENGTH));
             }
         } catch (e) {
-            console.log("Gemini STT Error:", e);
-            Alert.alert("Hata", "Ses işlenirken bir sorun oluştu.");
+            console.log("Sunucu STT Hatası:", e);
+            Alert.alert("Hata", "Ses sunucuda işlenemedi.");
         }
     }
 
@@ -192,24 +179,18 @@ export default function AiChat() {
                 ? "Focus on pronunciation feedback."
                 : "Casual learning feedback.";
 
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    {
-                                        text: `You are an English pronunciation tutor. Reply in max 200 characters. Use 1–2 short sentences. No paragraphs. ${translationPrompt} ${practicePrompt} User said: ${text.slice(0, MAX_TEXT_LENGTH)}`,
-                                    },
-                                ],
-                            },
-                        ],
-                    }),
-                }
-            );
+            // Prompt'u hazırlıyoruz ama işlemi sunucu yapacak
+            const contextText = `You are an English pronunciation tutor. Reply in max 200 characters. Use 1–2 short sentences. No paragraphs. ${translationPrompt} ${practicePrompt}`;
+
+            // Google yerine KENDİ SUNUCUMUZA istek atıyoruz
+            const res = await fetch(`${API_URL}/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: text,
+                    context: contextText
+                }),
+            });
 
             const data = await res.json();
             console.log("Gemini API Response:", JSON.stringify(data, null, 2));
